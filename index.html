@@ -380,7 +380,7 @@ function renderStake(){
     <div><label>Kelly-Anteil (%)</label><input id="kfIn" type="number" value="${g('kfIn')||25}"></div>
     <div><label>Max je Wette (%)</label><input id="mxIn" type="number" value="${g('mxIn')||5}"></div></div>`;
   h+=`<div class="subnav" style="flex-wrap:wrap">`+dates.map(d=>`<button class="sub${d===STK_DATE?' on':''}" data-d="${d}">${dlabel(d)}</button>`).join('')+`</div>`;
-  h+=`<div id="stkRec"></div><div id="stkCards" style="margin-top:12px"></div>`;
+  h+=`<div id="stkRec"></div><div id="stkDog"></div><div id="stkCards" style="margin-top:12px"></div>`;
   $('#stakewrap').innerHTML=h;
   $('#stakewrap').querySelectorAll('.subnav .sub').forEach(b=>b.onclick=()=>{STK_DATE=b.dataset.d; renderStake();});
   $('#stakewrap').oninput=e=>{ if(e.target.classList.contains('so')) STK_ODDS[e.target.dataset.k]=e.target.value; stkCompute(); };
@@ -430,6 +430,18 @@ function stkCompute(){
     h+=`<div class="muted">Das sind die überzeugendsten Modell-Tipps — aber noch <b>kein Value</b>. „Lohnt sich" wird's erst, wenn deine Buchmacher-Quote <b>höher</b> ist als die faire Quote. Trag unten Quoten ein.</div></div>`;
   }
   $('#stkRec').innerHTML=h;
+  // 🐺 Größter Außenseiter-Value des Spieltags (Sieg des unwahrscheinlicheren Teams)
+  let dogVal=null, dogBel=null;
+  fx.forEach((f,i)=>{ if(f.datum!==STK_DATE) return; const r=STK[i];
+    const hd=r.pw<=r.pl, dM=hd?0:2, dP=hd?r.pw:r.pl, dT=hd?T[f.heim].de:T[f.gast].de, mt=T[f.heim].de+' – '+T[f.gast].de;
+    if(!dogBel||dP>dogBel.p) dogBel={p:dP,team:dT,match:mt,fair:1/dP};
+    const q=parseFloat(STK_ODDS[i+'_'+dM]);
+    if(q>1){const ev=dP*q-1; if(ev>0){const fr=(dP*q-1)/(q-1), stake=Math.round(Math.min(br*kf*fr,br*mx)*100)/100;
+      if(!dogVal||ev>dogVal.ev) dogVal={ev,q,team:dT,match:mt,stake};}}});
+  let dh='';
+  if(dogVal) dh=`<div class="card" style="background:#1c1206;border-color:var(--ac2);padding:12px;margin:10px 0 0"><b style="color:var(--ac2)">🐺 Größter Außenseiter-Value:</b> <b>${dogVal.team}</b> · ${dogVal.match} @ ${dogVal.q.toFixed(2)} → Einsatz <b class="val">${dogVal.stake.toFixed(2)} €</b> <span class="gr">(EV +${(dogVal.ev*100).toFixed(0)}%)</span></div>`;
+  else if(dogBel) dh=`<div class="card" style="padding:12px;margin:10px 0 0"><b style="color:var(--ac2)">🐺 Stärkster Außenseiter (Modell):</b> <b>${dogBel.team}</b> · ${dogBel.match} ${(dogBel.p*100).toFixed(0)}% <span class="gr">· faire Quote ${dogBel.fair.toFixed(2)} — Value, wenn deine Quote höher ist</span></div>`;
+  document.getElementById('stkDog').innerHTML=dh;
 }
 renderGroups();renderSim();renderStake();
 // Tabs
