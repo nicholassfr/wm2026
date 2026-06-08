@@ -199,20 +199,23 @@ fillSel($('#t1'),'Germany');fillSel($('#t2'),'Spain');
 $('#venue').innerHTML='<option value="">— neutraler Platz —</option>'+
   Object.keys(DATA.stadien).map(c=>`<option value="${c}">${c} (${DATA.stadien[c].land})</option>`).join('');
 function pct(x){return (x*100).toFixed(1)+'%';}
-// Farbskala Ueber-2,5 (Turnierschnitt ~45%): kalt=wenig Tore, heiss=viele.
+// Farbskala Ueber-2,5 (Schnitt ~45%): GRUEN ueber Schnitt (immer gruener),
+// ROT unter Schnitt (immer roter).
 function ovTier(p){const x=p*100;
-  if(x>=60)return['#e0533d','#fff'];      // sehr hoch (oberste ~10%)
-  if(x>=52)return['#e8923a','#1a1407'];   // hoch (oberstes Viertel)
-  if(x>=45)return['#23d18b','#062013'];   // ueberdurchschnittlich (> Schnitt)
-  if(x>=38)return['#46586b','#eaf2f8'];   // um den Schnitt
-  return['#2f5d86','#eaf2f8'];}           // niedrig
-// Farbskala "Beide treffen" (Turnierschnitt ~40%).
+  if(x>=58)return['#0f9b52','#fff'];      // weit ueber Schnitt -> kraeftiges gruen
+  if(x>=50)return['#23d18b','#06210f'];   // klar ueber Schnitt -> gruen
+  if(x>=45)return['#8fd19e','#06210f'];   // leicht ueber Schnitt -> hellgruen
+  if(x>=40)return['#e8896b','#2a0f08'];   // leicht unter Schnitt -> hellrot
+  if(x>=33)return['#d9534f','#fff'];      // unter Schnitt -> rot
+  return['#b3362f','#fff'];}              // weit unter Schnitt -> dunkelrot
+// Farbskala "Beide treffen" (Schnitt ~40%): gleiche Logik (gruen > Schnitt).
 function btTier(p){const x=p*100;
-  if(x>=48)return['#e0533d','#fff'];      // sehr hoch (oberste ~10%)
-  if(x>=45)return['#e8923a','#1a1407'];   // hoch (oberstes Viertel)
-  if(x>=40)return['#23d18b','#062013'];   // ueberdurchschnittlich (> Schnitt)
-  if(x>=35)return['#46586b','#eaf2f8'];   // um den Schnitt
-  return['#2f5d86','#eaf2f8'];}           // niedrig
+  if(x>=48)return['#0f9b52','#fff'];
+  if(x>=44)return['#23d18b','#06210f'];
+  if(x>=40)return['#8fd19e','#06210f'];
+  if(x>=36)return['#e8896b','#2a0f08'];
+  if(x>=32)return['#d9534f','#fff'];
+  return['#b3362f','#fff'];}
 function chipC(p,c){return `<span style="background:${c[0]};color:${c[1]};border-radius:6px;padding:2px 8px;font-weight:700">${(p*100).toFixed(0)}%</span>`;}
 function ovChip(p){return chipC(p,ovTier(p));}
 function btChip(p){return chipC(p,btTier(p));}
@@ -339,7 +342,7 @@ document.querySelectorAll('.subnav .sub').forEach(b=>b.addEventListener('click',
 }));
 // Gruppenspiele
 function renderGroups(){
-  let h='<table><tr><th>Gr</th><th>Spiel</th><th class="n">Sieg/X/Sieg</th><th>Tipp</th><th class="n">Ü2,5</th></tr>';
+  let h='<table><tr><th>Gr</th><th>Spiel</th><th class="n">Sieg/X/Sieg</th><th>Tipp</th><th class="n">Ü2,5</th><th class="n">BTTS</th></tr>';
   for(const f of DATA.fixtures){
     const r=predict(f.heim,f.gast,f.stadt),T=DATA.teams;
     const tip=r.pw>=r.pd&&r.pw>=r.pl?T[f.heim].de:(r.pl>=r.pd?T[f.gast].de:'X');
@@ -347,8 +350,9 @@ function renderGroups(){
       <td>${T[f.heim].de} – ${T[f.gast].de}</td>
       <td class="n">${(r.pw*100).toFixed(0)}/${(r.pd*100).toFixed(0)}/${(r.pl*100).toFixed(0)}</td>
       <td class="win">${tip}</td>
-      <td class="n">${ovChip(r.o25)}</td></tr>`;}
-  $('#grpwrap').innerHTML=h+'</table><div class="muted">Ü2,5 = Über 2,5 Tore. Farbe: blau niedrig · grau ~Schnitt (45%) · grün überdurchschnittlich · orange/rot hoch.</div>';
+      <td class="n">${ovChip(r.o25)}</td>
+      <td class="n">${btChip(r.btts)}</td></tr>`;}
+  $('#grpwrap').innerHTML=h+'</table><div class="muted">Ü2,5 = Über 2,5 Tore · BTTS = Beide treffen. Farbe: <b style="color:#23d18b">grün = überdurchschnittlich</b> (immer grüner = höher), <b style="color:#d9534f">rot = unterdurchschnittlich</b>.</div>';
 }
 // Simulation
 function renderSim(){
