@@ -206,8 +206,16 @@ function ovTier(p){const x=p*100;
   if(x>=45)return['#23d18b','#062013'];   // ueberdurchschnittlich (> Schnitt)
   if(x>=38)return['#46586b','#eaf2f8'];   // um den Schnitt
   return['#2f5d86','#eaf2f8'];}           // niedrig
-function ovChip(p){const c=ovTier(p);
-  return `<span style="background:${c[0]};color:${c[1]};border-radius:6px;padding:2px 8px;font-weight:700">${(p*100).toFixed(0)}%</span>`;}
+// Farbskala "Beide treffen" (Turnierschnitt ~40%).
+function btTier(p){const x=p*100;
+  if(x>=48)return['#e0533d','#fff'];      // sehr hoch (oberste ~10%)
+  if(x>=45)return['#e8923a','#1a1407'];   // hoch (oberstes Viertel)
+  if(x>=40)return['#23d18b','#062013'];   // ueberdurchschnittlich (> Schnitt)
+  if(x>=35)return['#46586b','#eaf2f8'];   // um den Schnitt
+  return['#2f5d86','#eaf2f8'];}           // niedrig
+function chipC(p,c){return `<span style="background:${c[0]};color:${c[1]};border-radius:6px;padding:2px 8px;font-weight:700">${(p*100).toFixed(0)}%</span>`;}
+function ovChip(p){return chipC(p,ovTier(p));}
+function btChip(p){return chipC(p,btTier(p));}
 function bar(w,d,l){const f=v=>Math.max(v*100,0);
   return `<div class="bar"><i class="bw" style="width:${f(w)}%">${w>0.08?pct(w):''}</i>`+
   `<i class="bd" style="width:${f(d)}%">${d>0.08?pct(d):''}</i>`+
@@ -228,7 +236,7 @@ function renderMatch(){
     <div class="stat"><span>Erwartete Tore</span><b>${r.lh.toFixed(2)} : ${r.la.toFixed(2)}</b></div>
     <div class="stat"><span>Über 2,5 Tore <span class="gr">· faire Quote ${(1/r.o25).toFixed(2)}</span></span><b>${ovChip(r.o25)}</b></div>
     <div class="stat"><span>Unter 2,5 Tore <span class="gr">· faire Quote ${(1/(1-r.o25)).toFixed(2)}</span></span><b>${pct(1-r.o25)}</b></div>
-    <div class="stat"><span>Beide treffen</span><b>${pct(r.btts)}</b></div>
+    <div class="stat"><span>Beide treffen <span class="gr">· faire Quote ${(1/r.btts).toFixed(2)}</span></span><b>${btChip(r.btts)}</b></div>
     <div style="margin-top:10px">Wahrscheinlichste Ergebnisse:</div>
     <div class="scores">${r.top.map(s=>`<span>${s[0]}:${s[1]} &nbsp;<b>${pct(s[2])}</b></span>`).join('')}</div>`;
   $('#sum1').textContent=`⚕ ${T[h].de}: Ausfälle wählen`+(outH.size?` (${outH.size} raus)`:'');
