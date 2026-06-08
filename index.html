@@ -42,8 +42,11 @@ label{font-size:11px;color:var(--mut);display:block;margin:9px 0 4px;text-transf
 .big{font-size:15px;font-weight:800;margin:8px 0}
 .scores{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .scores span{background:var(--bg2);border:1px solid var(--line2);border-radius:9px;padding:6px 11px;font-size:14px}
-.stat{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.stat{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .stat:last-child{border-bottom:0}
+.stat>span:first-child{flex:1;min-width:0}
+.stat>b{flex:none;white-space:nowrap;text-align:right}
+#vOut,#vMatch{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:9px 7px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -76,7 +79,26 @@ table input[type=number]{padding:6px;width:62px;font-size:13px}
 .tb .pc{width:46px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
 #vmt td input{width:50px;padding:4px;margin-right:2px}
 ::-webkit-scrollbar{height:8px;width:8px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
-@media(max-width:600px){.mh-t .flag{font-size:32px}.tb .nm{width:80px}}
+@media(max-width:600px){
+ main{padding:11px}
+ h1{font-size:19px}
+ nav{gap:5px;padding:8px 8px}
+ nav button{min-width:0;flex:1;flex-direction:column;gap:3px;font-size:10.5px;font-weight:700;padding:8px 3px;white-space:normal;line-height:1.1}
+ nav button svg{width:19px;height:19px}
+ .card{padding:13px}
+ .mh{gap:8px}
+ .mh-t .flag{width:46px;height:46px}
+ .mh-n{font-size:13px}
+ .mh-p{font-size:14px}
+ .venue{max-width:110px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;font-size:11px}
+ .tb .nm{width:74px}
+ .tb .pc{width:42px}
+ .scores span{font-size:13px;padding:5px 9px}
+ label{font-size:10px}
+ select,input[type=number]{padding:10px;font-size:14px}
+ .row{gap:7px}
+ th,td{padding:8px 6px}
+}
 </style></head>
 <body>
 <header>
