@@ -351,58 +351,73 @@ function renderSim(){
     <td class="n">${s.halb.toFixed(0)}%</td><td class="n gr">${s.weiter.toFixed(0)}%</td></tr>`;});
   $('#simwrap').innerHTML=h+'</table><div class="muted">10.000 simulierte Turniere. Prozente = Häufigkeit im Modell.</div>';
 }
-// ---- Tipp-Tool: Einsatzplan nach Kelly, pro Spieltag ----
-let STK=null;
+// ---- Tipp-Tool: klare Empfehlung pro Spieltag ----
+let STK=null, STK_ODDS={}, STK_DATE=null;
+const STK_LAB=['Sieg 1','Remis','Sieg 2','Über 2,5','Unter 2,5'];
 function stkProb(r,m){return [r.pw,r.pd,r.pl,r.o25,1-r.o25][m];}
+function dlabel(d){return d.slice(8)+'.'+d.slice(5,7)+'.';}
 function renderStake(){
-  const T=DATA.teams, fx=DATA.fixtures;
+  const fx=DATA.fixtures;
   if(!STK) STK=fx.map(f=>predict(f.heim,f.gast,f.stadt));
   const dates=[...new Set(fx.map(f=>f.datum))].sort();
-  const M=['1','X','2','Über 2,5','Unter 2,5'];
-  let h=`<div class="muted">💸 <b>Einsatzplan nach Kelly.</b> Trag pro Spiel deine Buchmacher-Quoten ein (1·X·2·Über·Unter; Platzhalter = faire Quote des Modells). Für jeden <b class="val">Value-Tipp (EV&gt;0)</b> rechne ich aus deiner Bankroll einen Einsatz — über den Kelly-Anteil (konservativ) und gedeckelt. Kein Eintrag/kein Value = keine Wette. ⚠️ Kein Backtest — Hilfe zur Disziplin, keine Gewinngarantie.</div>`;
+  if(!STK_DATE||!dates.includes(STK_DATE)) STK_DATE=dates[0];
+  const g=id=>(document.getElementById(id)||{}).value;
+  let h=`<div class="muted">💸 <b>Wähle einen Spieltag.</b> Oben kommt die klare Empfehlung. Gib bei den Spielen optional deine Buchmacher-Quoten ein (Platzhalter = faire Quote) → daraus werden Value-Wetten mit Einsatz (Kelly). ⚠️ Kein Backtest — Disziplin-Hilfe, keine Gewinngarantie.</div>`;
   h+=`<div class="row" style="margin:10px 0">
-    <div><label>Bankroll (€)</label><input id="brIn" type="number" value="1000" step="50"></div>
-    <div><label>Kelly-Anteil (%)</label><input id="kfIn" type="number" value="25" step="5"></div>
-    <div><label>Max je Wette (% BR)</label><input id="mxIn" type="number" value="5" step="1"></div></div>`;
-  h+=`<div class="big" id="stkGrand"></div>`;
-  dates.forEach(dt=>{
-    h+=`<div class="big" style="margin-top:14px">📅 ${dt} <span class="gr" id="sub_${dt}"></span></div>`;
-    h+='<table><tr><th>Spiel</th><th class="n">Modell · Ü2,5</th><th>deine Quoten (1·X·2·Ü·U)</th><th>Tipp &amp; Einsatz</th></tr>';
-    fx.forEach((f,i)=>{ if(f.datum!==dt) return; const r=STK[i];
-      h+=`<tr data-i="${i}" data-dt="${dt}"><td>${T[f.heim].de} – ${T[f.gast].de}<br><span class="gr">${f.gruppe}</span></td>`+
-         `<td class="n gr">${(r.pw*100).toFixed(0)}/${(r.pd*100).toFixed(0)}/${(r.pl*100).toFixed(0)}<br>${ovChip(r.o25)}</td>`+
-         `<td>`+[0,1,2,3,4].map(m=>`<input class="so" data-i="${i}" data-m="${m}" type="number" step="0.01" style="width:50px;margin:1px" placeholder="${(1/stkProb(r,m)).toFixed(2)}">`).join('')+`</td>`+
-         `<td id="sto_${i}" class="gr">–</td></tr>`;
-    });
-    h+='</table>';
-  });
+    <div><label>Bankroll (€)</label><input id="brIn" type="number" value="${g('brIn')||1000}"></div>
+    <div><label>Kelly-Anteil (%)</label><input id="kfIn" type="number" value="${g('kfIn')||25}"></div>
+    <div><label>Max je Wette (%)</label><input id="mxIn" type="number" value="${g('mxIn')||5}"></div></div>`;
+  h+=`<div class="subnav" style="flex-wrap:wrap">`+dates.map(d=>`<button class="sub${d===STK_DATE?' on':''}" data-d="${d}">${dlabel(d)}</button>`).join('')+`</div>`;
+  h+=`<div id="stkRec"></div><div id="stkCards" style="margin-top:12px"></div>`;
   $('#stakewrap').innerHTML=h;
-  $('#stakewrap').oninput=stkCompute;
-  stkCompute();
+  $('#stakewrap').querySelectorAll('.subnav .sub').forEach(b=>b.onclick=()=>{STK_DATE=b.dataset.d; renderStake();});
+  $('#stakewrap').oninput=e=>{ if(e.target.classList.contains('so')) STK_ODDS[e.target.dataset.k]=e.target.value; stkCompute(); };
+  renderCards(); stkCompute();
+}
+function renderCards(){
+  const fx=DATA.fixtures,T=DATA.teams; let h='';
+  fx.forEach((f,i)=>{ if(f.datum!==STK_DATE) return; const r=STK[i];
+    const pk=[r.pw,r.pd,r.pl], wi=pk.indexOf(Math.max(...pk));
+    const pickL=['Sieg '+T[f.heim].de,'Unentschieden','Sieg '+T[f.gast].de][wi];
+    h+=`<div style="border:1px solid #243043;border-radius:12px;padding:11px;margin-bottom:9px">
+      <div style="font-weight:700;margin-bottom:3px">${T[f.heim].de} – ${T[f.gast].de} <span class="gr" style="font-weight:400;font-size:12px">${f.gruppe}</span></div>
+      <div class="gr" style="font-size:12.5px;margin-bottom:7px">Modell-Tipp: <b style="color:var(--ac)">${pickL} ${(pk[wi]*100).toFixed(0)}%</b> · faire Q ${(1/r.pw).toFixed(2)}/${(1/r.pd).toFixed(2)}/${(1/r.pl).toFixed(2)} · Über 2,5 ${ovChip(r.o25)}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">`+
+      [0,1,2,3,4].map(m=>`<span style="font-size:11px;color:var(--mut)">${['1','X','2','Ü','U'][m]}</span><input class="so" data-k="${i}_${m}" type="number" step="0.01" style="width:56px" placeholder="${(1/stkProb(r,m)).toFixed(2)}" value="${STK_ODDS[i+'_'+m]||''}">`).join('')+
+      `</div></div>`;
+  });
+  $('#stkCards').innerHTML=`<div class="big" style="margin-bottom:6px">Spiele am ${dlabel(STK_DATE)}</div>`+h;
 }
 function stkCompute(){
   const num=id=>{const el=document.getElementById(id);return el?parseFloat(el.value):NaN;};
   const br=Math.max(0,num('brIn')||0), kf=Math.max(0,(num('kfIn')||0)/100), mx=Math.max(0,(num('mxIn')||0)/100);
-  const M=['1','X','2','Über 2,5','Unter 2,5'];
-  const subs={}; let gS=0,gE=0,gN=0;
-  document.querySelectorAll('#stakewrap tr[data-i]').forEach(row=>{
-    const i=+row.dataset.i, dt=row.dataset.dt, r=STK[i];
-    let best=null;
-    row.querySelectorAll('.so').forEach(inp=>{const m=+inp.dataset.m, q=parseFloat(inp.value);
-      if(q>1){const p=stkProb(r,m), ev=p*q-1;
-        if(ev>0){const f=(p*q-1)/(q-1); if(!best||ev>best.ev) best={m,q,ev,f};}}});
-    const cell=document.getElementById('sto_'+i);
-    if(!best){cell.textContent='–'; cell.className='gr';}
-    else{let stake=Math.round(Math.min(br*kf*best.f, br*mx)*100)/100;
-      cell.innerHTML=`<b class="val">${M[best.m]} @ ${best.q.toFixed(2)}</b><br>Einsatz <b>${stake.toFixed(2)} €</b> <span class="gr">(EV +${(best.ev*100).toFixed(0)}%)</span>`;
-      cell.className='';
-      (subs[dt]=subs[dt]||{s:0,e:0,n:0}); subs[dt].s+=stake; subs[dt].e+=stake*best.ev; subs[dt].n++;
-      gS+=stake; gE+=stake*best.ev; gN++;}
+  const fx=DATA.fixtures,T=DATA.teams; let bets=[];
+  fx.forEach((f,i)=>{ if(f.datum!==STK_DATE) return; const r=STK[i];
+    [0,1,2,3,4].forEach(m=>{const q=parseFloat(STK_ODDS[i+'_'+m]); if(q>1){const p=stkProb(r,m),ev=p*q-1;
+      if(ev>0){const fr=(p*q-1)/(q-1), stake=Math.round(Math.min(br*kf*fr,br*mx)*100)/100;
+        bets.push({m,q,ev,stake,match:T[f.heim].de+' – '+T[f.gast].de});}}});
   });
-  document.querySelectorAll('#stakewrap [id^="sub_"]').forEach(el=>{const dt=el.id.slice(4); const s=subs[dt];
-    el.textContent = s?`— ${s.n} Tipps · Einsatz ${s.s.toFixed(0)} € · Erwartung +${s.e.toFixed(0)} €`:'— keine Value-Tipps';});
-  const g=document.getElementById('stkGrand');
-  if(g) g.innerHTML=gN?`Gesamt: <span class="val">${gN} Tipps · ${gS.toFixed(0)} € Einsatz</span> · Erwartung <span class="val">+${gE.toFixed(0)} €</span> <span class="gr">(${gS>0?(gE/gS*100).toFixed(0):0}% auf den Einsatz)</span>`:'<span class="gr">Noch keine Value-Tipps — Quoten eingeben.</span>';
+  bets.sort((a,b)=>b.ev-a.ev);
+  let h='';
+  if(bets.length){
+    const tot=bets.reduce((s,b)=>s+b.stake,0), exp=bets.reduce((s,b)=>s+b.stake*b.ev,0);
+    h=`<div class="card" style="background:#13241c;border-color:var(--ac);padding:13px;margin:0"><div class="big">✅ Empfehlung Spieltag ${dlabel(STK_DATE)} — ${bets.length} Value-Wette(n)</div>`;
+    bets.forEach((b,k)=>{h+=`<div class="stat"><span>${k+1}. <b>${STK_LAB[b.m]}</b> · ${b.match} @ ${b.q.toFixed(2)}</span><b class="val">${b.stake.toFixed(2)} € <span class="gr">EV +${(b.ev*100).toFixed(0)}%</span></b></div>`;});
+    h+=`<div class="big" style="margin-top:8px">Gesamt: <span class="val">${tot.toFixed(0)} € Einsatz</span> · Erwartung <span class="val">+${exp.toFixed(0)} €</span></div></div>`;
+  } else {
+    let tips=[];
+    fx.forEach((f,i)=>{ if(f.datum!==STK_DATE) return; const r=STK[i]; const m=T[f.heim].de+' – '+T[f.gast].de;
+      const side=r.pw>=r.pl?'Sieg '+T[f.heim].de:'Sieg '+T[f.gast].de, conf=Math.max(r.pw,r.pl);
+      tips.push({conf,txt:side+' · '+m,fair:1/conf});
+      if(r.o25>=0.55) tips.push({conf:r.o25,txt:'Über 2,5 · '+m,fair:1/r.o25});
+      if(r.o25<=0.34) tips.push({conf:1-r.o25,txt:'Unter 2,5 · '+m,fair:1/(1-r.o25)});
+    });
+    tips.sort((a,b)=>b.conf-a.conf); tips=tips.slice(0,5);
+    h=`<div class="card" style="padding:13px;margin:0"><div class="big">⭐ Sicherste Modell-Tipps ${dlabel(STK_DATE)} <span class="gr" style="font-weight:400">(noch ohne Quoten)</span></div>`;
+    tips.forEach((t,k)=>{h+=`<div class="stat"><span>${k+1}. <b>${t.txt}</b></span><b>${(t.conf*100).toFixed(0)}% <span class="gr">faire Q ${t.fair.toFixed(2)}</span></b></div>`;});
+    h+=`<div class="muted">Das sind die überzeugendsten Modell-Tipps — aber noch <b>kein Value</b>. „Lohnt sich" wird's erst, wenn deine Buchmacher-Quote <b>höher</b> ist als die faire Quote. Trag unten Quoten ein.</div></div>`;
+  }
+  $('#stkRec').innerHTML=h;
 }
 renderGroups();renderSim();renderStake();
 // Tabs
